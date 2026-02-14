@@ -110,7 +110,6 @@ function collectExpressions(propGroup)
         // ----- 1. 当前属性是否有表达式？-----
         try
         {
-            // expression 属性返回字符串，没有表达式则返回 ""
             if (prop.expression && prop.expression !== "")
             {
                 // $.writeln("【属性】" + propName);
@@ -126,11 +125,8 @@ function collectExpressions(propGroup)
             // 某些属性不支持表达式，访问 expression 会报错，忽略即可
         }
         
-        // ----- 2. 递归：如果这个属性本身是 PropertyGroup（有子属性）-----
-        // 所有 Layer、效果、蒙版、形状组等，都是 PropertyGroup
         if (prop.numProperties !== undefined && prop.numProperties > 0)
         {
-            // ⚠️ 避免无限递归：已知某些属性组循环引用，但 AE 脚本不会炸，只是耗性能
             collectExpressions(prop);
         }
     }
@@ -179,9 +175,6 @@ function fixAllExpressions()
         alert("请先激活一个合成！");
         return;
     }
-    
-    var results = [];
-    var report = "!\n";
 
     for (var i = 1; i <= comp.numLayers; i++)
     {
@@ -191,7 +184,6 @@ function fixAllExpressions()
             continue;
         }
 
-        results = [];
         traversalLayer(layer);
     }
 }
@@ -231,6 +223,19 @@ function setUI()
     var revertBtn = buttonGroup.add("button", undefined, "回退修改");
     revertBtn.preferredSize = [120, 30];
 
+    var buttonGroup2 = mainPalette.add("group");
+    buttonGroup2.orientation = "row";
+    buttonGroup2.alignment = "center";
+    buttonGroup2.spacing = 20;
+
+    // 执行修改按钮
+    var executeBtn2 = buttonGroup2.add("button", undefined, "执行修改2");
+    executeBtn2.preferredSize = [120, 30];
+
+    // 回退修改按钮
+    var revertBtn2 = buttonGroup2.add("button", undefined, "回退修改2");
+    revertBtn2.preferredSize = [120, 30];
+
     // 设置面板大小
     mainPalette.frameSize = [400, 300];
 
@@ -245,7 +250,42 @@ function setUI()
         app.executeCommand(16);
     };
 
+    executeBtn2.onClick = function()
+    {
+        app.beginUndoGroup("修复表达式");
+        fixAllExpressions2();
+    };
+
+    revertBtn2.onClick = function()
+    {
+        app.executeCommand(16);
+    };
+
     return mainPalette;
+}
+
+function fixAllExpressions2()
+{
+    for (var i = 1; i <= app.project.numItems; i++)
+    {
+        var comp = app.project.item(i);
+
+        if (!comp || !(comp instanceof CompItem) || comp.numLayers == 0)
+        {
+            continue;
+        }
+        
+        for (var j = 1; j <= comp.numLayers; j++)
+        {
+            var layer = comp.layer(j);
+            if (!layer)
+            {
+                continue;
+            }
+            
+            collectExpressions(layer);
+        }
+    }
 }
 
 mainPalette = setUI();
