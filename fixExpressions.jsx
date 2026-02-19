@@ -358,7 +358,7 @@ function setUI() {
 
     // 单合成修复按钮
     var loadOnePrecompBtn = loadButtonGroup.add("button", undefined, "载入当前合成错误表达式");
-    loadOnePrecompBtn.preferredSize = [200, 30];
+    loadOnePrecompBtn.preferredSize = [180, 30];
 
 
     // 创建进度条
@@ -399,17 +399,17 @@ function setUI() {
         for (var i = 1; i <= comp.numLayers; i++) {
             var layer = comp.layer(i);
             if (layer) {
-                collectExpressions(layer);
+                collectErrorExpressions(layer); // 只抓错误表达式
             }
         }
 
         if (taskList.length === 0) {
-            log("没有找到需要处理的表达式");
+            log("没有找到需要处理的错误表达式");
             return;
         }
 
         if (taskList.length > 0) {
-            log("找到 " + taskList.length + " 条表达式");
+            log("找到 " + taskList.length + " 条错误表达式");
         }
         fixBtn.enabled = true; // 启用修复按钮
     };
