@@ -1,5 +1,5 @@
 # AE Expression CN Fix
-AE英文表达式在中文环境下报错的修复插件
+AE表达式修复工具: 解决AE英文模板中的表达式在中文环境下报错的修复插件
 
 ## 安装
 1. 下载插件文件 `表达式修复 AE Expression CN Fix.jsx`

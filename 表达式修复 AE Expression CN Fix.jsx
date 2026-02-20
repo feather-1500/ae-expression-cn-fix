@@ -1,10 +1,19 @@
-var ui = {}; // 建立一个 ui 对象
+var version = "1.0.0"; // 版本号var 
+ui = {}; // 建立一个 ui 对象
 var taskList = []; // 待处理的表达式列表
 var currentTaskIndex = 0; // 当前处理的表达式索引
 var batchSize = 20; // 每批处理表达式的数量
 var history = []; // 新增：记录修改历史
-var version = "1.0.0"; // 版本号
 var githubLink = "https://github.com/feather-1500/ae-expression-cn-fix"; // GitHub链接
+var email = "ahang@silky.site"; // 邮箱
+
+function openURL(url) {
+    if ($.os.indexOf("Windows") !== -1) {
+        system.callSystem('explorer "' + url + '"');
+    } else {
+        system.callSystem('open "' + url + '"');
+    }
+}
 
 // 把这两个 map 提到全局，避免每次修复表达式时都重新创建
 var effectNameMap = {
@@ -23,7 +32,7 @@ var effectNameMap = {
     'opacity': '不透明度',
     'levels': '色阶',
     'curves': '曲线',
-    'exposure': '曲线',
+    'exposure': '曝光',
     'hue/saturation': '色相/饱和度',
     'brightness & contrast': '亮度和对比度',
     'tint': '色调',
@@ -267,7 +276,7 @@ function setUI(thisObj) {
     main.alignChildren = "fill";
     main.alignChildren = ["fill", "top"];
     main.spacing = 10;
-    main.margins = 16;
+    main.margins = 10;
 
     // tab面板定义
     var tabPanel = main.add("tabbedpanel");
@@ -465,6 +474,29 @@ function setUI(thisObj) {
         alert("每批处理数量已更新为: " + batchSize);
     };
 
+    // 当前版本
+    var versionGroup = tab2.add("group");
+    versionGroup.orientation = "row";
+    versionGroup.add("statictext", undefined, "当前版本: " + version);
+
+    // 现在版本
+    var currentVersionGroup = tab2.add("group");
+    currentVersionGroup.orientation = "row";
+    var currentVersionText = currentVersionGroup.add("statictext", undefined, "最新版本:");
+
+    // 检查更新按钮
+    var checkUpdateBtn = currentVersionGroup.add("button", undefined, "检查更新");
+    checkUpdateBtn.onClick = function() {
+        alert("还未实装检查更新功能，敬请期待！");
+    };
+
+    // 访问GitHub按钮
+    var githubBtn = currentVersionGroup.add("button", undefined, "访问GitHub");
+    githubBtn.onClick = function() {
+        var url = githubLink;
+        openURL(url);
+    };
+
     // -----------------------------------
     // 标签页3：关于
     // -----------------------------------
@@ -475,19 +507,14 @@ function setUI(thisObj) {
         "1. 载入错误表达式（全局或当前合成）\n" +
         "2. 点击修复按钮进行修复\n" +
         "3. 如需回退修改，点击回退按钮\n\n" +
-        "感谢使用！如有任何问题或建议，请随时联系我。";
+        "感谢使用！如有任何问题或建议，请随时联系我。\n" +
+        "邮箱: " + email + "\n";
     var aboutTextBox = tab3.add("edittext", undefined, aboutText, {
         multiline: true,
         scrollable: true,
         readonly: true
     });
     aboutTextBox.minimumSize.height = 200;
-
-    // 检查更新
-    var checkUpdateBtn = tab3.add("button", undefined, "检查更新");
-    checkUpdateBtn.onClick = function() {
-        alert("还未实装检查更新功能，敬请期待！");
-    };
 
     main.layout.layout(true);
     main.layout.resize();
