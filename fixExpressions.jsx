@@ -1,7 +1,10 @@
+var ui = {}; // 建立一个 ui 对象
 var taskList = []; // 待处理的表达式列表
 var currentTaskIndex = 0; // 当前处理的表达式索引
-var batchSize = 20; // 每批处理20个表达式
+var batchSize = 20; // 每批处理表达式的数量
 var history = []; // 新增：记录修改历史
+var version = "1.0.0"; // 版本号
+var githubLink = "https://github.com/feather-1500/ae-expression-cn-fix"; // GitHub链接
 
 // 把这两个 map 提到全局，避免每次修复表达式时都重新创建
 var effectNameMap = {
@@ -113,7 +116,7 @@ function revertAll() {
     history = [];
     currentTaskIndex = 0;
     taskList = [];
-    main.progressBar.value = 0;
+    ui.progressBar.value = 0;
 }
 
 // 日志输出函数，既输出到面板的日志框，也输出到控制台
@@ -125,15 +128,15 @@ var logIndex = 1; // 日志序号
 
 function log(message) {
     if (logFirstTime) {
-        logBoxRef.text = "";
+        ui.logBox.text = "";
         logFirstTime = false;
         logIndex = 1; // 初始化
     }
 
-    if (logBoxRef) {
+    if (ui.logBox) {
         // 添加序号
         var fullMessage = logIndex + ". " + message;
-        logBoxRef.text = fullMessage + "\n" + logBoxRef.text;
+        ui.logBox.text = fullMessage + "\n" + ui.logBox.text;
         logIndex++;
     }
     $.writeln(message);
@@ -186,6 +189,11 @@ function collectErrorExpressions(propGroup) {
 }
 
 // 分批处理表达式修复，避免一次性处理过多导致界面卡死
+
+var isFixing = false; // 是否正在修复
+var startTime = 0; // 开始时间
+var endTime = 0; // 结束时间
+
 function processBatch() {
     var end = Math.min(currentTaskIndex + batchSize, taskList.length);
 
@@ -196,16 +204,23 @@ function processBatch() {
     currentTaskIndex = end;
 
     // 更新进度条
-    if (main && main.progressBar) {
-        main.progressBar.value = Math.round((currentTaskIndex / taskList.length) * 100);
+    if (ui.progressBar) {
+        ui.progressBar.value = Math.round((currentTaskIndex / taskList.length) * 100);
     }
 
     if (currentTaskIndex < taskList.length) {
         app.scheduleTask("processBatch()", 10, false);
     } else {
-        log("处理完成，共处理: " + taskList.length + " 条错误表达式");
+        endTime = new Date().getTime(); // 记录结束时间
+        var timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+        log("处理完成，共处理: " + taskList.length + " 条错误表达式，耗时: " + timeTaken + " 秒");
         taskList = [];
         currentTaskIndex = 0;
+        isFixing = false;
+
+        app.endUndoGroup(); // 结束撤销组(开始时放在fix按钮点击事件中)
+        ui.fixBtn.enabled = false; // 修复过程中禁用修复按钮，避免重复点击
+        ui.revertBtn.enabled = true; // 启用回退按钮
     }
 }
 
@@ -239,14 +254,43 @@ var textDefault = "欢迎使用表达式修改工具！\n\n" +
     "2. 如果仅需修复当前合成的错误表达式，点击“载入当前合成错误表达式”按钮然后再点击修复\n" +
     "3. 如需回退修改，点击“回退修改”按钮。\n";
 
-function setUI() {
+function setUI(thisObj) {
     // 主面板定义
-    var main = new Window("palette", "表达式修改工具", undefined);
+    var main = (thisObj instanceof Panel) ?
+        thisObj :
+        new Window("palette", "表达式修改工具", undefined, {
+            resizeable: true,
+            independent: false
+        });
+
     main.orientation = "column";
     main.alignChildren = "fill";
+    main.alignChildren = ["fill", "top"];
+    main.spacing = 10;
+    main.margins = 16;
 
+    // tab面板定义
+    var tabPanel = main.add("tabbedpanel");
+    tabPanel.alignChildren = "fill";
+    tabPanel.alignment = ["fill", "fill"];
+    tabPanel.preferredSize = [300, 400];
+
+    // ----------------------------------
+    // 创建三个标签页
+    // ----------------------------------
+
+    var tab1 = tabPanel.add("tab", undefined, "表达式修复");
+    tab1.alignChildren = ["fill", "top"];
+    var tab2 = tabPanel.add("tab", undefined, "设置");
+    tab2.alignChildren = ["fill", "top"];
+    var tab3 = tabPanel.add("tab", undefined, "关于");
+    tab3.alignChildren = ["fill", "top"];
+
+    // -----------------------------------
+    // 标签页1：表达式修复
+    // -----------------------------------
     // 详细信息区域
-    var infoGroup = main.add("group");
+    var infoGroup = tab1.add("group");
     infoGroup.orientation = "column";
     infoGroup.alignChildren = "fill";
 
@@ -278,12 +322,12 @@ function setUI() {
         scrollable: true,
         readonly: true
     });
-    logBox.preferredSize = [380, 150];
+    logBox.minimumSize.height = 150;
 
     logBoxRef = logBox; // 绑定
 
     // 创建载入按钮区域
-    var loadButtonGroup = main.add("group");
+    var loadButtonGroup = tab1.add("group");
     loadButtonGroup.orientation = "row";
     loadButtonGroup.alignment = "center";
     loadButtonGroup.spacing = 20;
@@ -298,12 +342,12 @@ function setUI() {
 
 
     // 创建进度条
-    var progressGroup = main.add("progressbar", undefined, 0, 100);
+    var progressGroup = tab1.add("progressbar", undefined, 0, 100);
     progressGroup.preferredSize = [380, 20];
-    main.progressBar = progressGroup; // 挂到 main
+    ui.progressBar = progressGroup; // 挂到 ui
 
     // 创建修复按钮区域
-    var fixButtonGroup = main.add("group");
+    var fixButtonGroup = tab1.add("group");
     fixButtonGroup.orientation = "row";
     fixButtonGroup.alignment = "center";
     fixButtonGroup.spacing = 20;
@@ -317,9 +361,6 @@ function setUI() {
     var revertBtn = fixButtonGroup.add("button", undefined, "回退修改");
     revertBtn.preferredSize = [120, 30];
     revertBtn.enabled = false; // 初始状态禁用，只有修复后才启用
-
-    // 设置面板大小
-    main.frameSize = [400, 300];
 
     loadOnePrecompBtn.onClick = function() {
 
@@ -384,24 +425,80 @@ function setUI() {
             return;
         }
 
-        app.beginUndoGroup("修复表达式");
+        if (!isFixing) {
+            isFixing = true;
+            startTime = new Date().getTime(); // 记录开始时间
+        }
+        app.beginUndoGroup("修复表达式"); // 开始撤销组
         processBatch(); // 启动分批处理
-        app.endUndoGroup();
-        fixBtn.enabled = false; // 修复过程中禁用修复按钮，避免重复点击
-        revertBtn.enabled = true; // 启用回退按钮
     };
 
 
     revertBtn.onClick = function() {
         revertAll();
-        revertBtn.enabled = false;
-        fixBtn.enabled = false;
+        ui.revertBtn.enabled = false;
+        ui.fixBtn.enabled = false;
     };
 
+    ui.logBox = logBox;
+    ui.fixBtn = fixBtn;
+    ui.revertBtn = revertBtn;
 
+    // -----------------------------------
+    // 标签页2：设置
+    // -----------------------------------
+    // 设置每次批处理的数量
+    var batchSizeGroup = tab2.add("group");
+    batchSizeGroup.orientation = "row";
+    batchSizeGroup.add("statictext", undefined, "每批处理表达式数量:");
+    var batchSizeInput = batchSizeGroup.add("edittext", undefined, batchSize.toString());
+    batchSizeInput.preferredSize.width = 50;
+    var batchSizeSaveBtn = batchSizeGroup.add("button", undefined, "保存");
+    batchSizeSaveBtn.onClick = function() {
+        var input = parseInt(batchSizeInput.text);
+        if (isNaN(input) || input <= 0) {
+            alert("请输入一个有效的正整数！");
+            batchSizeInput.text = batchSize.toString();
+            return;
+        }
+        batchSize = input;
+        alert("每批处理数量已更新为: " + batchSize);
+    };
+
+    // -----------------------------------
+    // 标签页3：关于
+    // -----------------------------------
+    var aboutText = "表达式修改工具 v" + version + "\n\n" +
+        "本工具由 feather-1500 sakamoto-king 开发，旨在帮助 After Effects 用户修复因语言环境导致的表达式错误。\n\n" +
+        "GitHub: " + githubLink + "\n\n" +
+        "使用方法：\n" +
+        "1. 载入错误表达式（全局或当前合成）\n" +
+        "2. 点击修复按钮进行修复\n" +
+        "3. 如需回退修改，点击回退按钮\n\n" +
+        "感谢使用！如有任何问题或建议，请随时联系我。";
+    var aboutTextBox = tab3.add("edittext", undefined, aboutText, {
+        multiline: true,
+        scrollable: true,
+        readonly: true
+    });
+    aboutTextBox.minimumSize.height = 200;
+
+    // 检查更新
+    var checkUpdateBtn = tab3.add("button", undefined, "检查更新");
+    checkUpdateBtn.onClick = function() {
+        alert("还未实装检查更新功能，敬请期待！");
+    };
+
+    main.layout.layout(true);
+    main.layout.resize();
     return main;
 }
 
-main = setUI();
-main.center();
-main.show();
+var myPanel = setUI(this);
+
+if (myPanel instanceof Window) {
+    myPanel.center();
+    myPanel.show();
+} else {
+    myPanel.layout.layout(true);
+}
