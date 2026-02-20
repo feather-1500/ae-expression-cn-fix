@@ -1,11 +1,12 @@
-var version = "1.0.0"; // 版本号var 
-ui = {}; // 建立一个 ui 对象
+var version = "1.0.1"; // 版本号var 
+var ui = {}; // 建立一个 ui 对象
 var taskList = []; // 待处理的表达式列表
 var currentTaskIndex = 0; // 当前处理的表达式索引
 var batchSize = 20; // 每批处理表达式的数量
 var history = []; // 新增：记录修改历史
 var githubLink = "https://github.com/feather-1500/ae-expression-cn-fix"; // GitHub链接
 var email = "ahang@silky.site"; // 邮箱
+var compList = []; // 存储遍历过的合成列表
 
 function openURL(url) {
     if ($.os.indexOf("Windows") !== -1) {
@@ -151,30 +152,6 @@ function log(message) {
     $.writeln(message);
 }
 
-
-
-// 递归收集属性组中的表达式，并修复其中的英文参数名
-function collectExpressions(propGroup) {
-
-    if (!propGroup || !propGroup.numProperties) return;
-
-    for (var i = 1; i <= propGroup.numProperties; i++) {
-        var prop = propGroup.property(i);
-        if (!prop) continue;
-
-        try {
-            if (prop.expression && prop.expression !== "") {
-                taskList.push(prop); // 不修复，只加入队列
-                // log("找到表达式: " + prop.expression);
-            }
-        } catch (e) {}
-
-        if (prop.numProperties !== undefined && prop.numProperties > 0) {
-            collectExpressions(prop);
-        }
-    }
-}
-
 // 递归收集属性组中的表达式，修复其中的英文参数名（仅限有错误的表达式）
 function collectErrorExpressions(propGroup) {
     if (!propGroup || !propGroup.numProperties) return;
@@ -184,10 +161,8 @@ function collectErrorExpressions(propGroup) {
         if (!prop) continue;
 
         try {
-            if (prop.canSetExpression && prop.expressionEnabled) {
-                if (prop.expressionError && prop.expressionError !== "") {
-                    taskList.push(prop);
-                }
+            if (prop.canSetExpression && prop.expressionEnabled && prop.expressionError && prop.expressionError !== "") {
+                taskList.push(prop);
             }
         } catch (e) {}
 
@@ -245,6 +220,12 @@ function traversalLayer(layer) {
         return;
     }
 
+    // 避免重复遍历同一个合成
+    if (compList.indexOf(layer.source) !== -1) {
+        return;
+    }
+
+    compList.push(layer.source); // 记录遍历过的合成，避免重复遍历
     var precomp = layer.source;
 
     for (var i = 1; i <= precomp.numLayers; i++) {
@@ -372,8 +353,8 @@ function setUI(thisObj) {
     revertBtn.enabled = false; // 初始状态禁用，只有修复后才启用
 
     loadOnePrecompBtn.onClick = function() {
-
         taskList = [];
+        compList = []; // 重置合成列表，避免影响后续操作
         currentTaskIndex = 0;
 
         var comp = app.project.activeItem;
@@ -385,7 +366,7 @@ function setUI(thisObj) {
         for (var i = 1; i <= comp.numLayers; i++) {
             var layer = comp.layer(i);
             if (layer) {
-                collectErrorExpressions(layer); // 只抓错误表达式
+                traversalLayer(layer); // 先递归遍历预合成中的图层
             }
         }
 
