@@ -371,8 +371,8 @@ var textDefault = "欢迎使用表达式修改工具！\n\n" +
     "版本号: " + version + "\n" +
     "更新日期: " + updateDate + "\n\n" +
     "本工具会将表达式中的英文参数名替换为中文，修复因语言环境导致的表达式错误。\n\n" +
-    "使用方法：\n" + "1. 首先载入全部错误表达式然后点击修复\n" +
-    "2. 如果仅需修复当前合成的错误表达式，点击“载入当前合成错误表达式”按钮然后再点击修复\n" +
+    "使用方法：\n" + "1. 首先按需载入错误表达式（全局或当前合成）\n" +
+    "2. 点击修复按钮进行修复\n" +
     "3. 如需回退修改，点击“回退修改”按钮。\n";
 
 function setUI(thisObj) {
@@ -394,8 +394,7 @@ function setUI(thisObj) {
     var tabPanel = main.add("tabbedpanel");
     tabPanel.alignChildren = "fill";
     tabPanel.alignment = ["fill", "fill"];
-    tabPanel.preferredSize = [300, 400];
-
+    tabPanel.maximumSize = [400, 450];
     // ----------------------------------
     // 创建三个标签页
     // ----------------------------------
@@ -450,7 +449,8 @@ function setUI(thisObj) {
         scrollable: true,
         readonly: true
     });
-    logBox.minimumSize.height = 150;
+    logBox.minimumSize.height = 200;
+    logBox.maximumSize.height = 200;
 
     logBoxRef = logBox; // 绑定
 
@@ -688,13 +688,31 @@ function setUI(thisObj) {
         alert("每批处理数量已更新为: " + fixBatchSize);
     };
 
+    // -----------------------------------
+    // 标签页3：关于
+    // -----------------------------------
+    var aboutText = "表达式修改工具 v" + version + "\n\n" +
+        "更新日期: " + updateDate + "\n\n" +
+        "本工具由 feather-1500 sakamoto-king 开发，旨在帮助 After Effects 用户修复因语言环境导致的表达式错误。\n\n" +
+        "GitHub: " + githubLink + "\n\n" +
+        "感谢使用！如有任何问题或建议，请随时联系我。\n" +
+        "邮箱: " + email + "\n";
+    var aboutTextBox = tab3.add("edittext", undefined, aboutText, {
+        multiline: true,
+        scrollable: true,
+        readonly: true
+    });
+    aboutTextBox.minimumSize.height = 200;
+
+
+
     // 当前版本
-    var versionGroup = tab2.add("group");
+    var versionGroup = tab3.add("group");
     versionGroup.orientation = "row";
     versionGroup.add("statictext", undefined, "当前版本: " + version);
 
     // 现在版本
-    var currentVersionGroup = tab2.add("group");
+    var currentVersionGroup = tab3.add("group");
     currentVersionGroup.orientation = "row";
     var currentVersionText = currentVersionGroup.add("statictext", undefined, "最新版本:");
 
@@ -711,25 +729,6 @@ function setUI(thisObj) {
         openURL(url);
     };
 
-    // -----------------------------------
-    // 标签页3：关于
-    // -----------------------------------
-    var aboutText = "表达式修改工具 v" + version + "\n\n" +
-        "更新日期: " + updateDate + "\n\n" +
-        "本工具由 feather-1500 sakamoto-king 开发，旨在帮助 After Effects 用户修复因语言环境导致的表达式错误。\n\n" +
-        "GitHub: " + githubLink + "\n\n" +
-        "使用方法：\n" +
-        "1. 载入错误表达式（全局或当前合成）\n" +
-        "2. 点击修复按钮进行修复\n" +
-        "3. 如需回退修改，点击回退按钮\n\n" +
-        "感谢使用！如有任何问题或建议，请随时联系我。\n" +
-        "邮箱: " + email + "\n";
-    var aboutTextBox = tab3.add("edittext", undefined, aboutText, {
-        multiline: true,
-        scrollable: true,
-        readonly: true
-    });
-    aboutTextBox.minimumSize.height = 200;
 
     main.layout.layout(true);
     main.layout.resize();
