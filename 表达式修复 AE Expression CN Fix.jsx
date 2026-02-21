@@ -380,7 +380,7 @@ function setUI(thisObj) {
     var main = (thisObj instanceof Panel) ?
         thisObj :
         new Window("palette", "表达式修改工具", undefined, {
-            resizeable: true,
+            resizeable: false,
             independent: false
         });
 
@@ -395,6 +395,7 @@ function setUI(thisObj) {
     tabPanel.alignChildren = "fill";
     tabPanel.alignment = ["fill", "fill"];
     tabPanel.maximumSize = [400, 450];
+    tabPanel.minimumSize = [400, 450];
     // ----------------------------------
     // 创建三个标签页
     // ----------------------------------
@@ -470,6 +471,15 @@ function setUI(thisObj) {
     loadModeDropdown.preferredSize = [170, 30];
     loadModeDropdown.selection = 0; // 默认选中“整个项目”
 
+    // 修改下拉框时清空列表并且禁用修复按钮，避免用户误操作
+    loadModeDropdown.onChange = function() {
+        taskList = [];
+        ui.fixBtn.enabled = false;
+        ui.revertBtn.enabled = false;
+        ui.progressBar.value = 0;
+        log("载入模式已切换，已清空待修复表达式列表");
+    }
+
     // 载入按钮
     var loadBtn = loadGroup.add("button", undefined, "载入");
     loadBtn.preferredSize = [80, 30];
@@ -497,6 +507,8 @@ function setUI(thisObj) {
 
     // 未选择合成时的提示文本
     var noCompText = "请先在'项目'面板激活一个合成！或者右键鼠标->[显示]->[在项目中显示合成]";
+
+    // 选项
 
     //  载入按钮点击事件
     loadBtn.onClick = function() {
